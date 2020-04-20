@@ -1,11 +1,14 @@
 # Binaries for programs and plugins
+bin/
 *.exe
 *.exe~
 *.dll
 *.so
 *.dylib
+*key.json
 
 # Test binary, built with `go test -c`
+debug
 *.test
 
 # Output of the go coverage tool, specifically when used with LiteIDE
@@ -13,3 +16,15 @@
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
+
+# Temp stuff
+tmp/
+temp/
+
+# Logs
+*.log
+log/
+
+# VSCode
+.vscode/
+/.project
