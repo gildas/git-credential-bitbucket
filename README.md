@@ -16,9 +16,9 @@ Once created, collect the **key** and the **secret** from the consumer (click on
 
 ### Binaries
 
-Download the binary for your platforl from the [releases](https://github.com/gildas/git-credential-bitbucket/releases) page.
+Download the binary for your platform from the [releases](https://github.com/gildas/git-credential-bitbucket/releases) page.
 
-and copy the executable in a folder that belongs to your `PATH`.
+Unzip it and copy the executable in a folder that belongs to your `PATH`.
 
 ### Source
 
