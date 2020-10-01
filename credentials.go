@@ -167,29 +167,7 @@ func (credentials Credentials) Filename() string {
 func (credentials *Credentials) GetToken(renewBefore time.Duration) error {
 	log := credentials.Logger.Child(nil, "gettoken")
 	now := time.Now()
-	renewOn := credentials.Token.Expires.Add(-1 * renewBefore)
-	if credentials.Token != nil && now.After(renewOn) {
-		log.Infof("Token is still valid, but expires in %s (On: %s), we should renew the token", now.Sub(renewOn), renewOn)
-		token := &Token{}
-		authURL, _ := url.Parse("https://bitbucket.org/site/oauth2/access_token")
-		if _, err := request.Send(
-			&request.Options{
-				Method:        http.MethodPost,
-				URL:           authURL,
-				Authorization: request.BasicAuthorization(credentials.ClientID, credentials.Secret),
-				Payload: map[string]string{
-					"grant_type":    "refresh_token",
-					"refresh_token": credentials.Token.RefreshToken,
-				},
-				UserAgent: fmt.Sprintf("%s v%s", APP, VERSION),
-				Logger:    credentials.Logger,
-			},
-			&token,
-		); err != nil {
-			return err
-		}
-		credentials.Token = token
-	} else if credentials.Token == nil || now.After(credentials.Token.Expires) {
+	if credentials.Token == nil || now.After(credentials.Token.Expires) {
 		if credentials.Token != nil {
 			log.Infof("Token expired %s ago (On: %s)", now.Sub(credentials.Token.Expires), credentials.Token.Expires)
 		}
@@ -202,6 +180,28 @@ func (credentials *Credentials) GetToken(renewBefore time.Duration) error {
 				Authorization: request.BasicAuthorization(credentials.ClientID, credentials.Secret),
 				Payload: map[string]string{
 					"grant_type": "client_credentials",
+				},
+				UserAgent: fmt.Sprintf("%s v%s", APP, VERSION),
+				Logger:    credentials.Logger,
+			},
+			&token,
+		); err != nil {
+			return err
+		}
+		credentials.Token = token
+	} else if credentials.Token != nil && now.After(credentials.Token.Expires.Add(-1 * renewBefore)) {
+		renewOn := credentials.Token.Expires.Add(-1 * renewBefore)
+		log.Infof("Token is still valid, but expires in %s (On: %s), we should renew the token", now.Sub(renewOn), renewOn)
+		token := &Token{}
+		authURL, _ := url.Parse("https://bitbucket.org/site/oauth2/access_token")
+		if _, err := request.Send(
+			&request.Options{
+				Method:        http.MethodPost,
+				URL:           authURL,
+				Authorization: request.BasicAuthorization(credentials.ClientID, credentials.Secret),
+				Payload: map[string]string{
+					"grant_type":    "refresh_token",
+					"refresh_token": credentials.Token.RefreshToken,
 				},
 				UserAgent: fmt.Sprintf("%s v%s", APP, VERSION),
 				Logger:    credentials.Logger,
