@@ -52,10 +52,10 @@ Where:
 
 In the git repository clone on your machine, make sure the remote repository is something like:
 ```console
-git remote add bitbucket https://xxx@bitbucket.org/path/to/repo,git
+git remote add bitbucket https://xxx@bitbucket.org/path/to/repo.git
 ```
 
-Where `xxx` is your username on butbucket.org (or at least the same username you used to store the credentials).
+Where `xxx` is your username on bitbucket.org (or at least the same username you used to store the credentials).
 
 Then, add the credential helper:
 
@@ -63,7 +63,7 @@ Then, add the credential helper:
 git config credential.helper bitbucket
 ```
 
-Now, the next time you do a `git pull`, `git push` on that remote repository, the credential help will manage the OAUTH token for you.
+Now, the next time you do a `git pull`, `git push` on that remote repository, the credential helper will manage the OAUTH token for you.
 
 ### Removing credentials
 
@@ -75,7 +75,7 @@ host=bitbucket.org
 username=xxx
 ```
 
-Where `xxx` is your username on butbucket.org (or at least the same username you used to store the credentials).
+Where `xxx` is your username on bitbucket.org (or at least the same username you used to store the credentials).
 
 ### Advanced usage
 
@@ -92,7 +92,7 @@ Example:
 git config credential.helper "bitbucket --store-location /path/to/location"
 ```
 
-**Note:** Make sure the store is readable only by yourself as it wll contain sensible information.
+**Note:** Make sure the store is readable only by yourself as it will contain sensible information.
 
 #### Token Renewal
 
