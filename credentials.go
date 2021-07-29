@@ -135,7 +135,7 @@ func LoadCredentials(path string, parameters map[string]string, log *logger.Logg
 	}
 	payload, err := ioutil.ReadFile(filepath.Join(path, credentials.Filename()))
 	if err != nil {
-		return nil, errors.NotFound.With("file", credentials.Username).WithStack()
+		return nil, errors.NotFound.With("file", credentials.Username)
 	}
 	err = json.Unmarshal(payload, &credentials)
 	return credentials, errors.JSONUnmarshalError.Wrap(err)
@@ -189,7 +189,7 @@ func (credentials *Credentials) GetToken(renewBefore time.Duration) error {
 			return err
 		}
 		credentials.Token = token
-	} else if credentials.Token != nil && now.After(credentials.Token.Expires.Add(-1 * renewBefore)) {
+	} else if credentials.Token != nil && now.After(credentials.Token.Expires.Add(-1*renewBefore)) {
 		renewOn := credentials.Token.Expires.Add(-1 * renewBefore)
 		log.Infof("Token is still valid, but expires in %s (On: %s), we should renew the token", now.Sub(renewOn), renewOn)
 		token := &Token{}
