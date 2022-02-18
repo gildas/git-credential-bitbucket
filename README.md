@@ -94,6 +94,23 @@ git config credential.helper "bitbucket --store-location /path/to/location"
 
 **Note:** Make sure the store is readable only by yourself as it will contain sensible information.
 
+#### Bitbucket Workspaces
+
+If your account is used in various Bitbucket workspaces you can store per-workspace credentials:  
+```console
+git credential-bitbucket --workspace MyTeam store <<EOM
+protocol=https
+host=bitbucket.org
+username=xxx
+clientid=yyy
+secret=zzz
+```
+
+And you would configure the helper in git as follows:  
+```console
+git config credential.helper "bitbucket --workspace MyTeam"
+```
+
 #### Token Renewal
 
 By default, the credential store will try to renew the bitbucket's OAUTH token 10 minutes before it expires.

@@ -24,6 +24,7 @@ func main() {
 	var (
 		storeLocation  = flag.String("store-location", core.GetEnvAsString("STORE_LOCATION", ""), "the location folder where the credentials data is stored")
 		logDestination = flag.String("log", core.GetEnvAsString("LOG_DESTINATION", ""), "sends logs to the given destination. Default: none")
+		workspace      = flag.String("workspace", core.GetEnvAsString("WORKSPACE", ""), "use the credentials for the given workspace. Default: none")
 		renewBefore    = flag.Duration("renew", core.GetEnvAsDuration("RENEW_BEFORE", DefaultRenewBefore), "when to renew the bitbucket token. Default 10 minutes before it expires")
 		version        = flag.Bool("version", false, "prints the current version and exits")
 	)
@@ -89,6 +90,10 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Cannot read stdin for parameters. Error: %s\n", err.Error())
 		Log.Close()
 		os.Exit(-1)
+	}
+	if len(*workspace) > 0 {
+		Log.Debugf("Adding Parameter[workspace] = %s", *workspace)
+		parameters["workspace"] = *workspace
 	}
 
 	Log.Infof("Command: %s", flag.Arg(0))

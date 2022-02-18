@@ -10,21 +10,22 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/gildas/go-core"
-	"github.com/gildas/go-errors"
-	"github.com/gildas/go-logger"
-	"github.com/gildas/go-request"
+	core "github.com/gildas/go-core"
+	errors "github.com/gildas/go-errors"
+	logger "github.com/gildas/go-logger"
+	request "github.com/gildas/go-request"
 )
 
 // Credentials describes Bitbucket credentials
 type Credentials struct {
-	Protocol string         `json:"protocol"`
-	Host     string         `json:"host"`
-	Username string         `json:"username"`
-	ClientID string         `json:"client_id"`
-	Secret   string         `json:"secret"`
-	Token    *Token         `json:"token,omitempty"`
-	Logger   *logger.Logger `json:"-"`
+	Protocol  string         `json:"protocol"`
+	Host      string         `json:"host"`
+	Username  string         `json:"username"`
+	Workspace string         `json:"workspace,omitempty"`
+	ClientID  string         `json:"client_id"`
+	Secret    string         `json:"secret"`
+	Token     *Token         `json:"token,omitempty"`
+	Logger    *logger.Logger `json:"-"`
 }
 
 // Token describes a Bitbucket Token
@@ -89,6 +90,9 @@ func NewCredentials(parameters map[string]string, log *logger.Logger) (*Credenti
 	} else {
 		_ = merr.Append(errors.ArgumentMissing.With("username"))
 	}
+	if value, ok := parameters["workspace"]; ok {
+		credentials.Workspace = value
+	}
 	return credentials, merr.AsError()
 }
 
@@ -112,6 +116,9 @@ func NewCredentialsWithSecrets(parameters map[string]string, log *logger.Logger)
 	} else {
 		_ = merr.Append(errors.ArgumentMissing.With("secret"))
 	}
+	if value, ok := parameters["workspace"]; ok {
+		credentials.Workspace = value
+	}
 	return credentials, merr.AsError()
 }
 
@@ -133,7 +140,9 @@ func LoadCredentials(path string, parameters map[string]string, log *logger.Logg
 	if err != nil {
 		return nil, err
 	}
-	payload, err := ioutil.ReadFile(filepath.Join(path, credentials.Filename()))
+	filename := filepath.Join(path, credentials.Filename())
+	credentials.Logger.Child(nil, "load").Debugf("Loading from %s", filename)
+	payload, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil, errors.NotFound.With("file", credentials.Username)
 	}
@@ -147,7 +156,9 @@ func (credentials Credentials) Save(path string) error {
 	if err != nil {
 		return errors.JSONMarshalError.Wrap(err)
 	}
-	return ioutil.WriteFile(filepath.Join(path, credentials.Filename()), payload, 0600)
+	filename := filepath.Join(path, credentials.Filename())
+	credentials.Logger.Child(nil, "save").Debugf("Saving into %s", filename)
+	return ioutil.WriteFile(filename, payload, 0600)
 }
 
 // DeleteCredentials delete Credentials from the store
@@ -156,11 +167,16 @@ func DeleteCredentials(path string, parameters map[string]string) error {
 	if err != nil {
 		return nil
 	}
-	return os.Remove(filepath.Join(path, credentials.Filename()))
+	filename := filepath.Join(path, credentials.Filename())
+	credentials.Logger.Child(nil, "delete").Debugf("Deleting %s", filename)
+	return os.Remove(filename)
 }
 
 // Filename gives the filename used to load/save the Credentials from/to the store
 func (credentials Credentials) Filename() string {
+	if len(credentials.Workspace) > 0 {
+		return fmt.Sprintf("%s@%s-%s.json", credentials.Username, credentials.Host, credentials.Workspace)
+	}
 	return fmt.Sprintf("%s@%s.json", credentials.Username, credentials.Host)
 }
 
