@@ -4,7 +4,7 @@ package main
 var commit string
 
 // VERSION is the version of this application
-var VERSION = "1.0.2" + commit
+var VERSION = "1.0.3" + commit
 
 const (
 	// APP is the name of the application
