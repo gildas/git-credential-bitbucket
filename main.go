@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gildas/go-core"
-	"github.com/gildas/go-logger"
+	core "github.com/gildas/go-core"
+	logger "github.com/gildas/go-logger"
 )
 
 // Log is the application Logger
@@ -75,9 +75,11 @@ func main() {
 			break
 		}
 		components := strings.Split(line, "=")
-		if len(components) == 2 {
-			parameters[strings.TrimSpace(components[0])] = strings.TrimSpace(components[1])
-			Log.Debugf("Adding Parameter[%s] = %s", components[0], components[1])
+		if len(components) > 1 {
+			key := strings.TrimSpace(components[0])
+			value := strings.TrimSpace(strings.Join(components[1:], "="))
+			Log.Debugf("Adding Parameter[%s] = %s", key, value)
+			parameters[key] = value
 		} else {
 			Log.Warnf("Ignoring mal-formed entry: %s", line)
 		}
