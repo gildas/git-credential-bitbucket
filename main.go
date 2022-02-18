@@ -31,7 +31,7 @@ func main() {
 	flag.Parse()
 
 	if *version {
-		fmt.Printf("%s version %s\n", APP, VERSION)
+		fmt.Printf("%s version %s\n", APP, Version())
 		os.Exit(0)
 	}
 
