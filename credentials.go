@@ -71,7 +71,7 @@ func (token *Token) UnmarshalJSON(payload []byte) (err error) {
 
 // NewCredentials instantiates new Credentials from a map
 func NewCredentials(parameters map[string]string, log *logger.Logger) (*Credentials, error) {
-	var merr errors.MultiError
+	var merr errors.Error
 	credentials := &Credentials{
 		Logger: logger.CreateIfNil(log, APP).Child("credentials", "credentials"),
 	}
@@ -83,12 +83,12 @@ func NewCredentials(parameters map[string]string, log *logger.Logger) (*Credenti
 	if value, ok := parameters["host"]; ok {
 		credentials.Host = value
 	} else {
-		_ = merr.Append(errors.ArgumentMissing.With("host"))
+		merr.WithCause(errors.ArgumentMissing.With("host"))
 	}
 	if value, ok := parameters["username"]; ok {
 		credentials.Username = value
 	} else {
-		_ = merr.Append(errors.ArgumentMissing.With("username"))
+		merr.WithCause(errors.ArgumentMissing.With("username"))
 	}
 	if value, ok := parameters["workspace"]; ok {
 		credentials.Workspace = value
@@ -100,21 +100,21 @@ func NewCredentials(parameters map[string]string, log *logger.Logger) (*Credenti
 //
 // client id and secrets are expected
 func NewCredentialsWithSecrets(parameters map[string]string, log *logger.Logger) (*Credentials, error) {
-	var merr errors.MultiError
+	var merr errors.Error
 
 	credentials, err := NewCredentials(parameters, log)
 	if err != nil {
-		_ = merr.Append(err)
+		merr.WithCause(err)
 	}
 	if value, ok := parameters["clientid"]; ok {
 		credentials.ClientID = value
 	} else {
-		_ = merr.Append(errors.ArgumentMissing.With("clientid"))
+		merr.WithCause(errors.ArgumentMissing.With("clientid"))
 	}
 	if value, ok := parameters["secret"]; ok {
 		credentials.Secret = value
 	} else {
-		_ = merr.Append(errors.ArgumentMissing.With("secret"))
+		merr.WithCause(errors.ArgumentMissing.With("secret"))
 	}
 	if value, ok := parameters["workspace"]; ok {
 		credentials.Workspace = value
