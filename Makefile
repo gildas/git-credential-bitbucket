@@ -74,7 +74,7 @@ dep:; $(info $(M) Updating Modules...) @ ## Updates the GO Modules
 	$Q $(GO) get -u ./...
 	$Q $(GO) mod tidy
 
-install: build __install_init__ __install_all__ @ ## Installs the binaries on the local host
+install: build __install_init__ __install_all__; @ ## Installs the binaries on the local host
 
 lint:;  $(info $(M) Linting application...) @ ## Lint Golang files
 	$Q $(GOLINT) run *.go
