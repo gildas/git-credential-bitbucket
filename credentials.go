@@ -174,7 +174,7 @@ func DeleteCredentials(path string, parameters map[string]string) error {
 // Filename gives the filename used to load/save the Credentials from/to the store
 func (credentials Credentials) Filename() string {
 	if len(credentials.Workspace) > 0 {
-		return fmt.Sprintf("%s@%s-%s.json", credentials.Username, credentials.Host, credentials.Workspace)
+		return fmt.Sprintf("%s-%s@%s.json", credentials.Username, credentials.Workspace, credentials.Host)
 	}
 	return fmt.Sprintf("%s@%s.json", credentials.Username, credentials.Host)
 }
