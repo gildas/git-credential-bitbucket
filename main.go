@@ -64,7 +64,7 @@ func main() {
 		}
 	}
 	Log.Infof("Store Location: %s", *storeLocation)
-	Log.Infof("Token should be renewd %s before it expires", *renewBefore)
+	Log.Infof("Token should be renewed %s before it expires", *renewBefore)
 
 	// Command parameters come from stdin
 	parameters := map[string]string{}
@@ -92,8 +92,10 @@ func main() {
 		os.Exit(-1)
 	}
 	if len(*workspace) > 0 {
-		Log.Debugf("Adding Parameter[workspace] = %s", *workspace)
+		Log.Infof("Adding Parameter[workspace] = %s", *workspace)
 		parameters["workspace"] = *workspace
+	} else {
+		Log.Infof("No workspace specified")
 	}
 
 	Log.Infof("Command: %s", flag.Arg(0))

@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -71,7 +70,7 @@ func (token *Token) UnmarshalJSON(payload []byte) (err error) {
 
 // NewCredentials instantiates new Credentials from a map
 func NewCredentials(parameters map[string]string, log *logger.Logger) (*Credentials, error) {
-	var merr errors.Error
+	var merr errors.MultiError
 	credentials := &Credentials{
 		Logger: logger.CreateIfNil(log, APP).Child("credentials", "credentials"),
 	}
@@ -83,12 +82,12 @@ func NewCredentials(parameters map[string]string, log *logger.Logger) (*Credenti
 	if value, ok := parameters["host"]; ok {
 		credentials.Host = value
 	} else {
-		merr.WithCause(errors.ArgumentMissing.With("host"))
+		merr.Append(errors.ArgumentMissing.With("host"))
 	}
 	if value, ok := parameters["username"]; ok {
 		credentials.Username = value
 	} else {
-		merr.WithCause(errors.ArgumentMissing.With("username"))
+		merr.Append(errors.ArgumentMissing.With("username"))
 	}
 	if value, ok := parameters["workspace"]; ok {
 		credentials.Workspace = value
@@ -100,21 +99,21 @@ func NewCredentials(parameters map[string]string, log *logger.Logger) (*Credenti
 //
 // client id and secrets are expected
 func NewCredentialsWithSecrets(parameters map[string]string, log *logger.Logger) (*Credentials, error) {
-	var merr errors.Error
+	var merr errors.MultiError
 
 	credentials, err := NewCredentials(parameters, log)
 	if err != nil {
-		merr.WithCause(err)
+		merr.Append(err)
 	}
 	if value, ok := parameters["clientid"]; ok {
 		credentials.ClientID = value
 	} else {
-		merr.WithCause(errors.ArgumentMissing.With("clientid"))
+		merr.Append(errors.ArgumentMissing.With("clientid"))
 	}
 	if value, ok := parameters["secret"]; ok {
 		credentials.Secret = value
 	} else {
-		merr.WithCause(errors.ArgumentMissing.With("secret"))
+		merr.Append(errors.ArgumentMissing.With("secret"))
 	}
 	if value, ok := parameters["workspace"]; ok {
 		credentials.Workspace = value
@@ -142,7 +141,7 @@ func LoadCredentials(path string, parameters map[string]string, log *logger.Logg
 	}
 	filename := filepath.Join(path, credentials.Filename())
 	credentials.Logger.Child(nil, "load").Debugf("Loading from %s", filename)
-	payload, err := ioutil.ReadFile(filename)
+	payload, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, errors.NotFound.With("file", credentials.Username)
 	}
@@ -158,7 +157,7 @@ func (credentials Credentials) Save(path string) error {
 	}
 	filename := filepath.Join(path, credentials.Filename())
 	credentials.Logger.Child(nil, "save").Debugf("Saving into %s", filename)
-	return ioutil.WriteFile(filename, payload, 0600)
+	return os.WriteFile(filename, payload, 0600)
 }
 
 // DeleteCredentials delete Credentials from the store
