@@ -3,11 +3,15 @@ module github.com/gildas/git-credential-bitbucket
 go 1.16
 
 require (
-	github.com/gildas/go-core v0.4.10
-	github.com/gildas/go-errors v0.3.1
-	github.com/gildas/go-logger v1.5.2
-	github.com/gildas/go-request v0.7.6
-	golang.org/x/sys v0.0.0-20220330033206-e17cdc41300f // indirect
-	google.golang.org/api v0.74.0 // indirect
-	google.golang.org/genproto v0.0.0-20220329172620-7be39ac1afc7 // indirect
+	cloud.google.com/go/compute v1.20.1 // indirect
+	cloud.google.com/go/longrunning v0.5.1 // indirect
+	github.com/gildas/go-core v0.5.2
+	github.com/gildas/go-errors v0.3.4
+	github.com/gildas/go-logger v1.6.6
+	github.com/gildas/go-request v0.7.16
+	github.com/googleapis/enterprise-certificate-proxy v0.2.5 // indirect
+	golang.org/x/oauth2 v0.9.0 // indirect
+	golang.org/x/sync v0.3.0 // indirect
+	google.golang.org/api v0.128.0 // indirect
+	google.golang.org/grpc v1.56.1 // indirect
 )
