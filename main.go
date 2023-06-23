@@ -24,6 +24,7 @@ func main() {
 	var (
 		storeLocation  = flag.String("store-location", core.GetEnvAsString("STORE_LOCATION", ""), "the location folder where the credentials data is stored")
 		logDestination = flag.String("log", core.GetEnvAsString("LOG_DESTINATION", ""), "sends logs to the given destination. Default: none")
+		logLevel       = flag.String("log-level", core.GetEnvAsString("LOG_LEVEL", "INFO"), "sets the log level. Default: info")
 		workspace      = flag.String("workspace", core.GetEnvAsString("WORKSPACE", ""), "use the credentials for the given workspace. Default: none")
 		renewBefore    = flag.Duration("renew", core.GetEnvAsDuration("RENEW_BEFORE", DefaultRenewBefore), "when to renew the bitbucket token. Default 10 minutes before it expires")
 		version        = flag.Bool("version", false, "prints the current version and exits")
@@ -37,11 +38,12 @@ func main() {
 
 	// Initializing the Logger
 	if len(*logDestination) > 0 {
-		Log = logger.Create(APP, *logDestination)
+		Log = logger.Create(APP, *logDestination, logger.ParseLevel(*logLevel))
 	} else if core.GetEnvAsBool("DEBUG", false) {
 		Log = logger.Create(APP, &logger.FileStream{
-			Path:       filepath.Join(".", "log", APP+".log"),
-			Unbuffered: true,
+			Path:         filepath.Join(".", "log", APP+".log"),
+			FilterLevels: logger.ParseLevels(*logLevel),
+			Unbuffered:   true,
 		})
 	} else {
 		Log = logger.Create(APP, &logger.NilStream{})
