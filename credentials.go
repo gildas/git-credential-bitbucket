@@ -74,6 +74,9 @@ func NewCredentials(parameters map[string]string, log *logger.Logger) (*Credenti
 	credentials := &Credentials{
 		Logger: logger.CreateIfNil(log, APP).Child("credentials", "credentials"),
 	}
+	for key, value := range parameters {
+		credentials.Logger.Debugf("Parameter[%s] = %s", key, value)
+	}
 	if value, ok := parameters["protocol"]; ok {
 		credentials.Protocol = value
 	} else {

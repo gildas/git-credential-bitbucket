@@ -77,6 +77,7 @@ func main() {
 		if len(line) == 0 {
 			break
 		}
+		Log.Debugf("Command line: %s", line)
 		components := strings.Split(line, "=")
 		if len(components) > 1 {
 			key := strings.TrimSpace(components[0])
@@ -121,7 +122,7 @@ func main() {
 		credentials.Fprint(os.Stdout)
 	case "store":
 		if _, found := parameters["password"]; found {
-			Log.Debugf("git just tried to reset the password, ignoring")
+			Log.Debugf("git just tried to reset the password with the token, ignoring")
 			os.Exit(0)
 		}
 		if _, err := CreateCredentials(*storeLocation, parameters, Log); err != nil {
@@ -131,7 +132,7 @@ func main() {
 		}
 	case "erase":
 		if err := DeleteCredentials(*storeLocation, parameters); err != nil {
-			Log.Errorf("Failed to deleting credentials", err)
+			Log.Errorf("Failed to delete credentials", err)
 			fmt.Fprintf(os.Stderr, "Failed to delete credentials. Error: %s\n", err)
 			os.Exit(-1)
 		}
