@@ -146,7 +146,7 @@ func LoadCredentials(path string, parameters map[string]string, log *logger.Logg
 	credentials.Logger.Child(nil, "load").Debugf("Loading from %s", filename)
 	payload, err := os.ReadFile(filename)
 	if err != nil {
-		return nil, errors.NotFound.With("file", credentials.Username)
+		return nil, errors.NotFound.With("file", credentials.Filename())
 	}
 	err = json.Unmarshal(payload, &credentials)
 	return credentials, errors.JSONUnmarshalError.Wrap(err)
