@@ -111,13 +111,16 @@ func main() {
 			os.Exit(-1)
 		}
 		Log.Record("credentials", credentials).Debugf("Found credentials")
+		currentToken := credentials.Token
 		if err = credentials.GetToken(*renewBefore); err != nil {
 			Log.Errorf("Failed to get token for credentials", err)
 			fmt.Fprintf(os.Stderr, "Failed to get token for credentials. Error: %s\n", err)
 			os.Exit(-1)
 		}
-		if err = credentials.Save(*storeLocation); err != nil {
-			Log.Errorf("Failed to save credentials", err)
+		if currentToken == nil || currentToken.AccessToken != credentials.Token.AccessToken {
+			if err = credentials.Save(*storeLocation); err != nil {
+				Log.Errorf("Failed to save credentials", err)
+			}
 		}
 		credentials.Fprint(os.Stdout)
 	case "store":
