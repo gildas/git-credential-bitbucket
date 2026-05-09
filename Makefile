@@ -123,7 +123,7 @@ gendoc: __gendoc_init__ $(BIN_DIR)/$(PROJECT).pdf; @ ## Generate the PDF documen
 
 publish: __publish_init__ __publish_binaries__ ; @ ## Publish the binaries to the Repository
 
-archive: __archive_init__ __archive_all__ __archive_debian__ __archive_rpm__ ; @ ## Archive the binaries
+archive: __archive_init__ __archive_all__ ; @ ## Archive the binaries
 
 build: __build_init__ __build_all__; @ ## Build the application for all platforms
 
@@ -226,18 +226,14 @@ __start__: stop $(BIN_DIR)/$(GOOS)/$(PROJECT) | $(TMP_DIR) $(LOG_DIR); $(info $(
 # publish recipes
 .PHONY: __publish_init__ __publish_binaries__
 __publish_init__:;
-__publish_binaries__: __archive_all__ __archive_debian__ __archive_rpm__
+__publish_binaries__: __archive_all__
 	$(info $(M) Uploading the binary packages...)
 	$Q $(foreach archive, $(wildcard $(BIN_DIR)/*$(VERSION)*.tar.gz), gh release upload v$(VERSION) $(archive) ;)
 	$Q $(foreach archive, $(wildcard $(BIN_DIR)/*$(VERSION)*.zip),    gh release upload v$(VERSION) $(archive) ;)
 	$Q $(foreach archive, $(wildcard $(BIN_DIR)/*$(VERSION)*.7z),     gh release upload v$(VERSION) $(archive) ;)
-	$(info $(M) Uploading the Debian packages...)
-	$Q $(foreach archive, $(wildcard $(BIN_DIR)/*$(VERSION)*.deb),    gh release upload v$(VERSION) $(archive) ;)
-	$(info $(M) Uploading the RPM packages...)
-	$Q $(foreach archive, $(wildcard $(BIN_DIR)/*$(VERSION)*.rpm),    gh release upload v$(VERSION) $(archive) ;)
 
 # archive recipes
-.PHONY: __archive_init__ __archive_all__ __archive_debian__ __archive_rpm__
+.PHONY: __archive_init__ __archive_all__
 __archive_init__:;      $(info $(M) Archiving binaries for application $(PROJECT))
 __archive_all__: \
 	$(BIN_DIR)/$(PACKAGE)_$(VERSION)_darwin_amd64.tar.gz \
@@ -248,14 +244,6 @@ __archive_all__: \
 	$(BIN_DIR)/$(PACKAGE)-$(VERSION)-windows-arm64.zip \
 	$(BIN_DIR)/$(PACKAGE)-$(VERSION)-windows-amd64.7z \
 	$(BIN_DIR)/$(PACKAGE)-$(VERSION)-windows-arm64.7z \
-	;
-__archive_debian__: \
-	$(BIN_DIR)/$(PACKAGE)_$(VERSION)-$(REVISION)_amd64.deb \
-	$(BIN_DIR)/$(PACKAGE)_$(VERSION)-$(REVISION)_arm64.deb \
-	;
-__archive_rpm__: \
-	$(BIN_DIR)/$(PACKAGE)-$(VERSION)-$(REVISION).x86_64.rpm \
-	$(BIN_DIR)/$(PACKAGE)-$(VERSION)-$(REVISION).aarch64.rpm \
 	;
 
 $(BIN_DIR)/$(PACKAGE)_$(VERSION)_darwin_amd64.tar.gz: $(BIN_DIR)/darwin/amd64/$(PROJECT)
@@ -274,16 +262,6 @@ $(BIN_DIR)/$(PACKAGE)-$(VERSION)-windows-amd64.7z: $(BIN_DIR)/windows/amd64/$(PR
 	$Q $(7ZIP) a -r $@ $<
 $(BIN_DIR)/$(PACKAGE)-$(VERSION)-windows-arm64.7z: $(BIN_DIR)/windows/arm64/$(PROJECT).exe
 	$Q $(7ZIP) a -r $@ $<
-
-$(BIN_DIR)/$(PACKAGE)_$(VERSION)-$(REVISION)_amd64.deb: packaging/nfpm.yaml $(BIN_DIR)/linux/amd64/$(PROJECT)
-	$Q PLATFORM=linux/amd64 $(GOMPLATE) --file packaging/nfpm.yaml | $(NFPM) package --config - --target $(@D) --packager deb
-$(BIN_DIR)/$(PACKAGE)_$(VERSION)-$(REVISION)_arm64.deb: packaging/nfpm.yaml $(BIN_DIR)/linux/arm64/$(PROJECT)
-	$Q PLATFORM=linux/arm64 $(GOMPLATE) --file packaging/nfpm.yaml | $(NFPM) package --config - --target $(@D) --packager deb
-
-$(BIN_DIR)/$(PACKAGE)-$(VERSION)-$(REVISION).x86_64.rpm: packaging/nfpm.yaml $(BIN_DIR)/linux/amd64/$(PROJECT)
-	$Q PLATFORM=linux/amd64 $(GOMPLATE) --file packaging/nfpm.yaml | $(NFPM) package --config - --target $(@D) --packager rpm
-$(BIN_DIR)/$(PACKAGE)-$(VERSION)-$(REVISION).aarch64.rpm: packaging/nfpm.yaml $(BIN_DIR)/linux/arm64/$(PROJECT)
-	$Q PLATFORM=linux/arm64 $(GOMPLATE) --file packaging/nfpm.yaml | $(NFPM) package --config - --target $(@D) --packager rpm
 
 # build recipes for various platforms
 .PHONY: __build_all__ __build_init__ __fetch_modules__
