@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -20,15 +21,14 @@ import (
 
 // Credentials describes Bitbucket credentials
 type Credentials struct {
-	Protocol  string         `json:"protocol"`
-	Host      string         `json:"host"`
-	Username  string         `json:"username"`
-	Workspace string         `json:"workspace,omitempty"`
-	ClientID  string         `json:"client_id"`
-	Secret    string         `json:"secret,omitempty"`
-	Token     *Token         `json:"token,omitempty"`
-	NoVault   bool           `json:"novault,omitempty"`
-	Logger    *logger.Logger `json:"-"`
+	Protocol  string `json:"protocol"`
+	Host      string `json:"host"`
+	Username  string `json:"username"`
+	Workspace string `json:"workspace,omitempty"`
+	ClientID  string `json:"client_id"`
+	Secret    string `json:"secret,omitempty"`
+	Token     *Token `json:"token,omitempty"`
+	NoVault   bool   `json:"novault,omitempty"`
 }
 
 // Token describes a Bitbucket Token
@@ -73,14 +73,9 @@ func (token *Token) UnmarshalJSON(payload []byte) (err error) {
 }
 
 // NewCredentials instantiates new Credentials from a map
-func NewCredentials(parameters map[string]string, log *logger.Logger) (*Credentials, error) {
+func NewCredentials(parameters map[string]string) (*Credentials, error) {
 	var merr errors.MultiError
-	credentials := &Credentials{
-		Logger: logger.CreateIfNil(log, APP).Child("credentials", "credentials"),
-	}
-	for key, value := range parameters {
-		credentials.Logger.Debugf("Parameter[%s] = %s", key, value)
-	}
+	credentials := &Credentials{}
 	if value, ok := parameters["protocol"]; ok {
 		credentials.Protocol = value
 	} else {
@@ -99,16 +94,19 @@ func NewCredentials(parameters map[string]string, log *logger.Logger) (*Credenti
 	if value, ok := parameters["workspace"]; ok {
 		credentials.Workspace = value
 	}
+	if value, found := parameters["novault"]; found && strings.Contains("on1trueokyes", strings.ToLower(value)) {
+		credentials.NoVault = true
+	}
 	return credentials, merr.AsError()
 }
 
 // NewCredentials instantiates new Credentials from a map
 //
 // client id and secrets are expected
-func NewCredentialsWithSecrets(parameters map[string]string, log *logger.Logger) (*Credentials, error) {
+func NewCredentialsWithSecrets(parameters map[string]string) (*Credentials, error) {
 	var merr errors.MultiError
 
-	credentials, err := NewCredentials(parameters, log)
+	credentials, err := NewCredentials(parameters)
 	if err != nil {
 		merr.Append(err)
 	}
@@ -129,28 +127,27 @@ func NewCredentialsWithSecrets(parameters map[string]string, log *logger.Logger)
 }
 
 // CreateCredentials creates new credentials in the store
-func CreateCredentials(path string, parameters map[string]string, log *logger.Logger) (*Credentials, error) {
-	credentials, err := NewCredentialsWithSecrets(parameters, log)
+func CreateCredentials(ctx context.Context, path string, parameters map[string]string) (*Credentials, error) {
+	credentials, err := NewCredentialsWithSecrets(parameters)
 	if err != nil {
 		return nil, err
 	}
-	if value, found := parameters["novault"]; found && strings.Contains("on1trueokyes", strings.ToLower(value)) {
-		credentials.NoVault = true
-	}
-	if err := credentials.Save(path); err != nil {
+	if err := credentials.Save(ctx, path); err != nil {
 		return nil, err
 	}
 	return credentials, nil
 }
 
 // LoadCredentials loads Credentials from the store
-func LoadCredentials(path string, parameters map[string]string, log *logger.Logger) (*Credentials, error) {
-	credentials, err := NewCredentials(parameters, log)
+func LoadCredentials(ctx context.Context, path string, parameters map[string]string) (*Credentials, error) {
+	log := logger.Must(logger.FromContext(ctx)).Child(nil, "load")
+
+	credentials, err := NewCredentials(parameters)
 	if err != nil {
 		return nil, err
 	}
 	filename := filepath.Join(path, credentials.Filename())
-	credentials.Logger.Child(nil, "load").Debugf("Loading from %s", filename)
+	log.Debugf("Loading from %s", filename)
 	payload, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, errors.NotFound.With("file", credentials.Filename())
@@ -161,22 +158,23 @@ func LoadCredentials(path string, parameters map[string]string, log *logger.Logg
 	if credentials.Secret == "" && len(credentials.ClientID) > 0 {
 		if secret, err := keyring.Get(credentials.getVaultKey(), credentials.ClientID); err == nil {
 			credentials.Secret = secret
-			credentials.Logger.Infof("Loaded client secret for clientID %s from the vault", credentials.ClientID)
+			log.Infof("Loaded client secret for clientID %s from the vault", credentials.ClientID)
 		} else {
-			credentials.Logger.Errorf("failed to get client secret for credentials %s", credentials.Username, err)
+			log.Errorf("failed to get client secret for credentials %s", credentials.Username, err)
 		}
 	}
 	return credentials, nil
 }
 
 // Save saves Credentials to the store
-func (credentials Credentials) Save(path string) error {
+func (credentials Credentials) Save(ctx context.Context, path string) error {
+	log := logger.Must(logger.FromContext(ctx)).Child(nil, "save")
 	if !credentials.NoVault { // if novault is not set, we save the secret in the vault and not in the file
 		if len(credentials.ClientID) > 0 && len(credentials.Secret) > 0 {
 			if err := keyring.Set(credentials.getVaultKey(), credentials.ClientID, credentials.Secret); err != nil {
 				return errors.Join(errors.New("Failed to store client secret in the vault"), err)
 			}
-			credentials.Logger.Infof("Stored client secret in the vault for %s", credentials.ClientID)
+			log.Infof("Stored client secret in the vault for %s", credentials.ClientID)
 		}
 		credentials.Secret = ""
 	}
@@ -185,25 +183,26 @@ func (credentials Credentials) Save(path string) error {
 		return errors.JSONMarshalError.Wrap(err)
 	}
 	filename := filepath.Join(path, credentials.Filename())
-	credentials.Logger.Child(nil, "save").Debugf("Saving into %s", filename)
+	log.Debugf("Saving into %s", filename)
 	return os.WriteFile(filename, payload, 0600)
 }
 
 // DeleteCredentials delete Credentials from the store
-func DeleteCredentials(path string, parameters map[string]string) error {
-	credentials, err := NewCredentials(parameters, nil)
+func DeleteCredentials(ctx context.Context, path string, parameters map[string]string) error {
+	log := logger.Must(logger.FromContext(ctx)).Child(nil, "delete")
+	credentials, err := NewCredentials(parameters)
 	if err != nil {
 		return nil
 	}
 	if credentials.Secret == "" && len(credentials.ClientID) > 0 {
 		if err := keyring.Delete(credentials.getVaultKey(), credentials.ClientID); err == nil {
-			credentials.Logger.Infof("Deleted client secret for clientID %s from the vault", credentials.ClientID)
+			log.Infof("Deleted client secret for clientID %s from the vault", credentials.ClientID)
 		} else {
-			credentials.Logger.Errorf("failed to delete client secret for credentials %s", credentials.Username, err)
+			log.Errorf("failed to delete client secret for credentials %s", credentials.Username, err)
 		}
 	}
 	filename := filepath.Join(path, credentials.Filename())
-	credentials.Logger.Child(nil, "delete").Debugf("Deleting %s", filename)
+	log.Debugf("Deleting %s", filename)
 	return os.Remove(filename)
 }
 
@@ -215,8 +214,8 @@ func (credentials Credentials) Filename() string {
 	return fmt.Sprintf("%s@%s.json", credentials.Username, credentials.Host)
 }
 
-func (credentials *Credentials) GetToken(renewBefore time.Duration) error {
-	log := credentials.Logger.Child(nil, "gettoken")
+func (credentials *Credentials) GetToken(ctx context.Context, renewBefore time.Duration) error {
+	log := logger.Must(logger.FromContext(ctx)).Child(nil, "gettoken")
 	now := time.Now()
 	if credentials.Token == nil || now.After(credentials.Token.Expires) {
 		if credentials.Token != nil {
@@ -233,7 +232,7 @@ func (credentials *Credentials) GetToken(renewBefore time.Duration) error {
 					"grant_type": "client_credentials",
 				},
 				UserAgent: fmt.Sprintf("%s v%s", APP, VERSION),
-				Logger:    credentials.Logger,
+				Logger:    log,
 			},
 			&token,
 		); err != nil {
@@ -255,7 +254,7 @@ func (credentials *Credentials) GetToken(renewBefore time.Duration) error {
 					"refresh_token": credentials.Token.RefreshToken,
 				},
 				UserAgent: fmt.Sprintf("%s v%s", APP, VERSION),
-				Logger:    credentials.Logger,
+				Logger:    log,
 			},
 			&token,
 		); err != nil {
