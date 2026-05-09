@@ -7,12 +7,15 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"runtime"
+	"strings"
 	"time"
 
 	core "github.com/gildas/go-core"
 	errors "github.com/gildas/go-errors"
 	logger "github.com/gildas/go-logger"
 	request "github.com/gildas/go-request"
+	"github.com/zalando/go-keyring"
 )
 
 // Credentials describes Bitbucket credentials
@@ -22,8 +25,9 @@ type Credentials struct {
 	Username  string         `json:"username"`
 	Workspace string         `json:"workspace,omitempty"`
 	ClientID  string         `json:"client_id"`
-	Secret    string         `json:"secret"`
+	Secret    string         `json:"secret,omitempty"`
 	Token     *Token         `json:"token,omitempty"`
+	NoVault   bool           `json:"novault,omitempty"`
 	Logger    *logger.Logger `json:"-"`
 }
 
@@ -130,6 +134,9 @@ func CreateCredentials(path string, parameters map[string]string, log *logger.Lo
 	if err != nil {
 		return nil, err
 	}
+	if value, found := parameters["novault"]; found && strings.Contains("on1trueokyes", strings.ToLower(value)) {
+		credentials.NoVault = true
+	}
 	if err := credentials.Save(path); err != nil {
 		return nil, err
 	}
@@ -148,12 +155,31 @@ func LoadCredentials(path string, parameters map[string]string, log *logger.Logg
 	if err != nil {
 		return nil, errors.NotFound.With("file", credentials.Filename())
 	}
-	err = json.Unmarshal(payload, &credentials)
-	return credentials, errors.JSONUnmarshalError.Wrap(err)
+	if err = json.Unmarshal(payload, &credentials); err != nil {
+		return nil, errors.JSONUnmarshalError.Wrap(err)
+	}
+	if credentials.Secret == "" && len(credentials.ClientID) > 0 {
+		if secret, err := keyring.Get(credentials.getVaultKey(), credentials.ClientID); err == nil {
+			credentials.Secret = secret
+			credentials.Logger.Infof("Loaded client secret for clientID %s from the vault", credentials.ClientID)
+		} else {
+			credentials.Logger.Errorf("failed to get client secret for credentials %s", credentials.Username, err)
+		}
+	}
+	return credentials, nil
 }
 
 // Save saves Credentials to the store
 func (credentials Credentials) Save(path string) error {
+	if !credentials.NoVault { // if novault is not set, we save the secret in the vault and not in the file
+		if len(credentials.ClientID) > 0 && len(credentials.Secret) > 0 {
+			if err := keyring.Set(credentials.getVaultKey(), credentials.ClientID, credentials.Secret); err != nil {
+				return errors.Join(errors.New("Failed to store client secret in the vault"), err)
+			}
+			credentials.Logger.Infof("Stored client secret in the vault for %s", credentials.ClientID)
+		}
+		credentials.Secret = ""
+	}
 	payload, err := json.Marshal(credentials)
 	if err != nil {
 		return errors.JSONMarshalError.Wrap(err)
@@ -168,6 +194,13 @@ func DeleteCredentials(path string, parameters map[string]string) error {
 	credentials, err := NewCredentials(parameters, nil)
 	if err != nil {
 		return nil
+	}
+	if credentials.Secret == "" && len(credentials.ClientID) > 0 {
+		if err := keyring.Delete(credentials.getVaultKey(), credentials.ClientID); err == nil {
+			credentials.Logger.Infof("Deleted client secret for clientID %s from the vault", credentials.ClientID)
+		} else {
+			credentials.Logger.Errorf("failed to delete client secret for credentials %s", credentials.Username, err)
+		}
 	}
 	filename := filepath.Join(path, credentials.Filename())
 	credentials.Logger.Child(nil, "delete").Debugf("Deleting %s", filename)
@@ -243,4 +276,13 @@ func (credentials Credentials) Fprint(out *os.File) {
 	if credentials.Token != nil {
 		fmt.Fprintf(out, "password=%s\n", credentials.Token.AccessToken)
 	}
+}
+
+// getVaultKey gets the key to use to store secrets in the vault
+func (credentials Credentials) getVaultKey() string {
+	if runtime.GOOS == "windows" {
+		// Windows Credential Manager does not support vault keys
+		return ""
+	}
+	return "git-credential-bitbucket"
 }
