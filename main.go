@@ -58,6 +58,7 @@ func main() {
 	if len(*storeLocation) == 0 {
 		*storeLocation = filepath.Join(core.GetEnvAsString("XDG_DATA_HOME", filepath.Join(core.GetEnvAsString("HOME", "."), ".local", "share")), APP)
 	}
+	*storeLocation = path.Clean(*storeLocation)
 	if _, err := os.Stat(*storeLocation); os.IsNotExist(err) {
 		if err = os.MkdirAll(*storeLocation, os.ModePerm); err != nil {
 			Log.Fatalf("Failed to create the storage folder", err)
