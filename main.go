@@ -69,6 +69,7 @@ func main() {
 		}
 	}
 	log.Infof("Store Location: %s", *storeLocation)
+	log.Infof("Bitbucket workspace: %s", *workspace)
 	log.Infof("Token should be renewed %s before it expires", *renewBefore)
 
 	// Command parameters come from stdin

@@ -1,6 +1,6 @@
 module github.com/gildas/git-credential-bitbucket
 
-go 1.25.0
+go 1.26.0
 
 require (
 	github.com/gildas/go-core v0.6.4

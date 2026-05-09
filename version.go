@@ -12,7 +12,7 @@ var branch string
 var stamp string
 
 // VERSION is the version of this application
-var VERSION = "1.0.5"
+var VERSION = "1.1.0"
 
 // APP is the name of the application
 const APP = "git-credential-bitbucket"
