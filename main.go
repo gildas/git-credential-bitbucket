@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"time"
@@ -49,7 +50,7 @@ func main() {
 		Log = logger.Create(APP, &logger.NilStream{})
 	}
 	defer Log.Close()
-	Log.Infof(strings.Repeat("-", 80))
+	Log.Infof("%s", strings.Repeat("-", 80))
 	Log.Infof("Starting %s v. %s", APP, VERSION)
 	Log.Infof("Log Destination: %s", Log)
 
@@ -104,7 +105,7 @@ func main() {
 	Log.Infof("Command: %s", flag.Arg(0))
 	switch strings.ToLower(flag.Arg(0)) {
 	case "get":
-		credentials, err := LoadCredentials(*storeLocation, parameters, Log)
+		credentials, err := LoadCredentials(path.Clean(*storeLocation), parameters, Log)
 		if err != nil {
 			Log.Errorf("Failed to load credentials", err)
 			fmt.Fprintf(os.Stderr, "Failed to load credentials. Error: %s\n", err)
@@ -118,23 +119,23 @@ func main() {
 			os.Exit(-1)
 		}
 		if currentToken == nil || currentToken.AccessToken != credentials.Token.AccessToken {
-			if err = credentials.Save(*storeLocation); err != nil {
+			if err = credentials.Save(path.Clean(*storeLocation)); err != nil {
 				Log.Errorf("Failed to save credentials", err)
 			}
 		}
 		credentials.Fprint(os.Stdout)
 	case "store":
 		if _, found := parameters["password"]; found {
-			Log.Debugf("git just tried to reset the password with the token, ignoring")
+			Log.Debugf("git just tried to set the password with the token, ignoring")
 			os.Exit(0)
 		}
-		if _, err := CreateCredentials(*storeLocation, parameters, Log); err != nil {
+		if _, err := CreateCredentials(path.Clean(*storeLocation), parameters, Log); err != nil {
 			Log.Errorf("Failed to create credentials", err)
 			fmt.Fprintf(os.Stderr, "Failed to create credentials. Error: %s\n", err)
 			os.Exit(-1)
 		}
 	case "erase":
-		if err := DeleteCredentials(*storeLocation, parameters); err != nil {
+		if err := DeleteCredentials(path.Clean(*storeLocation), parameters); err != nil {
 			Log.Errorf("Failed to delete credentials", err)
 			fmt.Fprintf(os.Stderr, "Failed to delete credentials. Error: %s\n", err)
 			os.Exit(-1)
