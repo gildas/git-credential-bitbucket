@@ -29,7 +29,6 @@ PROJECT   != awk '/^const +APP += +/{gsub("\"", "", $$4); print $$4}' version.go
 ifeq (${PROJECT},)
 PROJECT   != basename "$(PWD)"
 endif
-PACKAGE   = bitbucket-cli
 PACKAGE   ?= $(PROJECT)
 PLATFORMS ?= darwin/amd64 darwin/arm64 linux/amd64 linux/arm64 windows/amd64 windows/arm64
 export PACKAGE PROJECT VERSION BRANCH COMMIT BUILD REVISION
