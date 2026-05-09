@@ -22,6 +22,15 @@ You can get `bb` from [Homebrew](https://brew.sh) with:
 brew install gildas/tap/git-credential-bitbucket
 ```
 
+### Windows
+
+You can install `git-credential-bitbucket` with [scoop](https://scoop.sh):
+
+```bash
+scoop bucket add gildas https://github.com/gildas/scoop-bucket
+scoop install git-credential-bitbucket
+```
+
 ### Go
 
 If you have Go installed, you can install `bb` with:
