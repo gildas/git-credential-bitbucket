@@ -125,6 +125,10 @@ func main() {
 		}
 		credentials.Fprint(os.Stdout)
 	case "store":
+		if username, found := parameters["username"]; found && username == "x-token-auth" {
+			Log.Debugf("git just tried to set the password for magic user %s, ignoring", username)
+			os.Exit(0)
+		}
 		if _, found := parameters["password"]; found {
 			Log.Debugf("git just tried to set the password with the token, ignoring")
 			os.Exit(0)
@@ -135,6 +139,10 @@ func main() {
 			os.Exit(-1)
 		}
 	case "erase":
+		if _, found := parameters["password"]; found {
+			Log.Debugf("git just tried to clear the password, ignoring")
+			os.Exit(0)
+		}
 		if err := DeleteCredentials(path.Clean(*storeLocation), parameters); err != nil {
 			Log.Errorf("Failed to delete credentials", err)
 			fmt.Fprintf(os.Stderr, "Failed to delete credentials. Error: %s\n", err)
