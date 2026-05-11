@@ -217,53 +217,41 @@ func (credentials Credentials) Filename() string {
 func (credentials *Credentials) GetToken(ctx context.Context, renewBefore time.Duration) error {
 	log := logger.Must(logger.FromContext(ctx)).Child(nil, "gettoken")
 	now := time.Now()
-	if credentials.Token == nil || now.After(credentials.Token.Expires) {
-		if credentials.Token != nil {
-			log.Infof("Token expired %s ago (On: %s)", now.Sub(credentials.Token.Expires), credentials.Token.Expires)
-		}
-		token := &Token{}
-		authURL, _ := url.Parse("https://bitbucket.org/site/oauth2/access_token")
-		if _, err := request.Send(
-			&request.Options{
-				Method:        http.MethodPost,
-				URL:           authURL,
-				Authorization: request.BasicAuthorization(credentials.ClientID, credentials.Secret),
-				Payload: map[string]string{
-					"grant_type": "client_credentials",
-				},
-				UserAgent: fmt.Sprintf("%s v%s", APP, VERSION),
-				Logger:    log,
-			},
-			&token,
-		); err != nil {
-			return err
-		}
-		credentials.Token = token
-	} else if credentials.Token != nil && now.After(credentials.Token.Expires.Add(-1*renewBefore)) {
+
+	if credentials.Token != nil && now.Before(credentials.Token.Expires.Add(-1*renewBefore)) {
+		log.Infof("Token is still valid and expires in %s (On: %s)", credentials.Token.Expires.Sub(now), credentials.Token.Expires)
+		return nil
+	}
+
+	authURL, _ := url.Parse("https://bitbucket.org/site/oauth2/access_token")
+	token := &Token{}
+	payload := map[string]string{"grant_type": "client_credentials"}
+
+	if credentials.Token != nil && now.After(credentials.Token.Expires.Add(-1*renewBefore)) && len(credentials.Token.RefreshToken) > 0 {
 		renewOn := credentials.Token.Expires.Add(-1 * renewBefore)
 		log.Infof("Token is still valid, but expires in %s (On: %s), we should renew the token", now.Sub(renewOn), renewOn)
-		token := &Token{}
-		authURL, _ := url.Parse("https://bitbucket.org/site/oauth2/access_token")
-		if _, err := request.Send(
-			&request.Options{
-				Method:        http.MethodPost,
-				URL:           authURL,
-				Authorization: request.BasicAuthorization(credentials.ClientID, credentials.Secret),
-				Payload: map[string]string{
-					"grant_type":    "refresh_token",
-					"refresh_token": credentials.Token.RefreshToken,
-				},
-				UserAgent: fmt.Sprintf("%s v%s", APP, VERSION),
-				Logger:    log,
-			},
-			&token,
-		); err != nil {
-			return err
-		}
-		credentials.Token = token
+		payload["grant_type"] = "refresh_token"
+		payload["refresh_token"] = credentials.Token.RefreshToken
+	} else if credentials.Token != nil {
+		log.Infof("Token expired %s ago (On: %s)", now.Sub(credentials.Token.Expires), credentials.Token.Expires)
 	} else {
-		log.Infof("Token is still valid and expires in %s (On: %s)", credentials.Token.Expires.Sub(now), credentials.Token.Expires)
+		log.Infof("No token found, getting a new one")
 	}
+
+	if _, err := request.Send(
+		&request.Options{
+			Method:        http.MethodPost,
+			URL:           authURL,
+			Authorization: request.BasicAuthorization(credentials.ClientID, credentials.Secret),
+			Payload:       payload,
+			UserAgent:     fmt.Sprintf("%s v%s", APP, VERSION),
+			Logger:        log,
+		},
+		&token,
+	); err != nil {
+		return err
+	}
+	credentials.Token = token
 	return nil
 }
 
